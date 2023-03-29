@@ -12,7 +12,7 @@
 
 const unsigned char broadcast_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 bool init_done = false;
-void(*espnowCB)(const uint8_t *, int) = NULL;
+void(*espnowCB)(const uint8_t *, size_t) = NULL;
 
 #ifdef ESP32
 void esp_msg_recv_cb(const uint8_t *mac_addr, const uint8_t *data, int len)
@@ -69,7 +69,7 @@ void espnowBroadcast_begin(int channel){
   init_done = true;
 }
 
-void espnowBroadcast_send(const uint8_t *d, int len){
+void espnowBroadcast_send(const uint8_t *d, size_t len){
   if(init_done==false) {
     Serial.println("espnowBroadcast not initialized");
     return;
@@ -80,6 +80,6 @@ void espnowBroadcast_send(const uint8_t *d, int len){
     esp_now_send((u8*)broadcast_mac, (u8*)(d), len);
   #endif
 }
-void espnowBroadcast_cb(void(*cb)(const uint8_t *, int)){
+void espnowBroadcast_cb(void(*cb)(const uint8_t *, size_t)){
   espnowCB = cb;
 }

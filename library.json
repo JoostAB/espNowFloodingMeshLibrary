@@ -21,5 +21,28 @@
     "esp32",
     "espressif32",
     "esp8266"
-  ]
+  ],
+  "export": 
+  {
+    "exclude":
+    [
+      "examples/*",
+      "test/*"
+    ],
+    "dependencies": 
+    [
+      {
+        "name":"ArduinoCommands",
+        "version":"https://github.com/JoostAB/ArduinoCommands.git"
+      },
+      {
+        "name":"SimpleMqttLibrary",
+        "version":"https://github.com/JoostAB/SimpleMqttLibrary.git"
+      },
+      {
+        "name":"arduino-esp8266-aes-lib",
+        "version":"https://github.com/kakopappa/arduino-esp8266-aes-lib.git"
+      }
+    ]
+  }
 }

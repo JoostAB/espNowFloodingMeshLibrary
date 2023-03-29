@@ -108,7 +108,7 @@ void wifi_802_receive_cb(void(*cb)(const uint8_t *, int, uint8_t)) {
     wifi_802_receive_callback = cb;
 }
 
-void wifi_802_11_send(const uint8_t *d, int len) {
+void wifi_802_11_send(const uint8_t *d, size_t len) {
   uint8_t buf[500];
   for(int i=0;i<5;i++){
   if(len>sizeof(buf)-sizeof(raw_HEADER)-2) return;
@@ -122,7 +122,7 @@ void wifi_802_11_send(const uint8_t *d, int len) {
 
 
     #ifdef ESP32
-    esp_wifi_80211_tx(ESP_IF_WIFI_STA, buf, sizeof(raw_HEADER) + len+ 2, true);
+    esp_wifi_80211_tx(WIFI_IF_STA, buf, sizeof(raw_HEADER) + len+ 2, true);
     #else
     wifi_send_pkt_freedom(buf, sizeof(raw_HEADER) + len+ 2, true);
     #endif
