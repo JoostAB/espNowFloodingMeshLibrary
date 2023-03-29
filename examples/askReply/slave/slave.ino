@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <EspNowFloodingMesh.h>
 
 #define ESP_NOW_CHANNEL 1
@@ -44,10 +45,11 @@ void setup() {
   //Set device in AP mode to begin with
   espNowFloodingMesh_RecvCB(espNowFloodingMeshRecv);
   espNowFloodingMesh_secredkey(secredKey);
-  espNowFloodingMesh_begin(ESP_NOW_CHANNEL);
+  espNowFloodingMesh_begin(ESP_NOW_CHANNEL,5);
 
   espNowFloodingMesh_requestInstantTimeSyncFromMaster();
-  while (espNowFloodingMesh_isSyncedWithMaster() == false);
+  // TODO: Should this be implemented?
+  // while (espNowFloodingMesh_isSyncedWithMaster() == false);
 }
 
 void loop() {

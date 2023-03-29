@@ -9,7 +9,7 @@
 #include <ESP8266WiFi.h>
 #include "AESLib.h" //From https://github.com/kakopappa/arduino-esp8266-aes-lib
 #endif
-#include "AESLib.h" //From https://github.com/kakopappa/arduino-esp8266-aes-lib
+
 
 #ifndef USE_RAW_801_11
     #include "espnowBroadcast.h"
@@ -578,9 +578,15 @@ void espNowFloodingMesh_requestInstantTimeSyncFromMaster() {
   sendMsg(NULL, 0, 0, INSTANT_TIME_SYNC_REQ);
 }
 
+// TODO: Should this be implemented?
+//bool espNowFloodingMesh_isSyncedWithMaster() { return false; }
+
 void espNowFloodingMesh_end() {
 }
 
+void espNowFloodingMesh_begin(int channel) {
+
+}
 
 //   void setSendCb(function<void(void)> f)
 #ifndef USE_RAW_801_11
