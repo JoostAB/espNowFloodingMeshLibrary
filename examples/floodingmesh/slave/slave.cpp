@@ -1,4 +1,4 @@
-
+#include <Arduino.h>
 #include <EspNowFloodingMesh.h>
 #include <time.h>
 #define ESP_NOW_CHANNEL 1
@@ -25,9 +25,10 @@ void loop() {
 
   //Ask instant sync from master.
   espNowFloodingMesh_requestInstantTimeSyncFromMaster();
-  while (espNowFloodingMesh_isSyncedWithMaster() == false);
+  // while (espNowFloodingMesh_isSyncedWithMaster() == false);
   char message[] = "SLAVE(12) HELLO MESSAGE";
   espNowFloodingMesh_send((uint8_t*)message, sizeof(message), 3); //set ttl to 3
   espNowFloodingMesh_loop();
-  ESP.deepSleep(60000, WAKE_RF_DEFAULT); //Wakeup every minute
+  //ESP.deepSleep(60000, WAKE_RF_DEFAULT); //Wakeup every minute
+  ESP.deepSleep(60000); //Wakeup every minute
 }
