@@ -1,6 +1,6 @@
 #include<espnowBroadcast.h>
 
-void rec(const uint8_t *d, int l){
+void rec(const uint8_t *d, size_t l){
   Serial.println((const char*)d);  
 }
 void setup() {

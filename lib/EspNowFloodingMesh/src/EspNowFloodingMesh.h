@@ -15,11 +15,18 @@
 //#define DEBUG_PRINTS
 #define MAX_ALLOWED_TIME_DIFFERENCE_IN_MESSAGES 3 //if message time differens more than this from RTC, reject message
 
+    void espNowFloodingMesh_begin(int channel);
+
     #ifndef USE_RAW_801_11
     void espNowFloodingMesh_begin(int channel, int bsid);
     #else
     void espNowFloodingMesh_begin(int channel, char bsId[6]);
     #endif
+
+    void espNowFloodingMesh_requestInstantTimeSyncFromMaster();
+
+    // TODO: Should this be implemented?
+    //bool espNowFloodingMesh_isSyncedWithMaster();
 
     void espNowFloodingMesh_end();
 

@@ -9,7 +9,7 @@
 #include <ESP8266WiFi.h>
 #include "AESLib.h" //From https://github.com/kakopappa/arduino-esp8266-aes-lib
 #endif
-#include "AESLib.h" //From https://github.com/kakopappa/arduino-esp8266-aes-lib
+
 
 #ifndef USE_RAW_801_11
     #include "espnowBroadcast.h"
@@ -47,7 +47,7 @@ bool timeStampCheckDisabled = false;
 uint8_t syncTTL = 0;
 bool isespNowFloodingMeshInitialized = false;
 time_t time_fix_value;
-int myBsid = 0x112233;
+uint32_t myBsid = 0x112233;
 
 #pragma pack(push,1)
 struct header{
@@ -90,20 +90,20 @@ struct meshFrame{
   unencrypted_t unencrypted;
   struct mesh_secred_part encrypted;
 };
-#pragma pack(pop);
+// #pragma pack(pop);
 int espNowFloodingMesh_getTTL() {
     return syncTTL;
 }
 const unsigned char broadcast_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 uint8_t aes_secredKey[] = {0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA,0xBB,0xCC,0xDD,0xEE, 0xFF};
 bool forwardMsg(const uint8_t *data, int len);
-uint32_t sendMsg(uint8_t* msg, int size, int ttl, int msgId, void *ptr=NULL);
+uint32_t sendMsg(uint8_t* msg, size_t size, int ttl, int msgId, void *ptr=NULL);
 void hexDump(const uint8_t*b,int len);
 static void (*espNowFloodingMesh_receive_cb)(const uint8_t *, int, uint32_t) = NULL;
 
 uint16_t calculateCRC(int c, const unsigned char*b,int len);
 uint16_t calculateCRC(struct meshFrame *m);
-int decrypt(const uint8_t *_from, struct meshFrame *m, int size);
+void decrypt(const uint8_t *_from, struct meshFrame *m, int size);
 bool compareTime(time_t current, time_t received, time_t maxDifference);
 
 
@@ -271,7 +271,7 @@ void espNowFloodingMesh_RecvCB(void (*callback)(const uint8_t *, int, uint32_t))
 }
 
 void espNowFloodingMesh_delay(unsigned long tm) {
-  for(int i=0;i<(tm/10);i++){
+  for(unsigned long i=0;i<(tm/10);i++){
     espNowFloodingMesh_loop();
     delay(10);
   }
@@ -402,9 +402,9 @@ bool compareTime(time_t current, time_t received, time_t maxDifference) {
 }
 
 #ifdef USE_RAW_801_11
-void msg_recv_cb(const uint8_t *data, int len, uint8_t rssi)
+void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
 #else
-  void msg_recv_cb(const uint8_t *data, int len)
+  void msg_recv_cb(const uint8_t *data, size_t len)
 #endif
 {
   #ifdef DEBUG_PRINTS
@@ -442,11 +442,11 @@ void msg_recv_cb(const uint8_t *data, int len, uint8_t rssi)
     }
     if(m.encrypted.header.length>=0 && m.encrypted.header.length < (sizeof(m.encrypted.data) ) ){
       uint16_t crc = m.unencrypted.crc16;
-      int messageLengtWithHeader = m.encrypted.header.length + sizeof(struct header);
       uint16_t crc16 = calculateCRC(&m);
 
         #ifdef DEBUG_PRINTS
         Serial.print("REC:");
+        int messageLengtWithHeader = m.encrypted.header.length + sizeof(struct header);
         hexDump((uint8_t*)&m,messageLengtWithHeader);
         #endif
 
@@ -578,9 +578,15 @@ void espNowFloodingMesh_requestInstantTimeSyncFromMaster() {
   sendMsg(NULL, 0, 0, INSTANT_TIME_SYNC_REQ);
 }
 
+// TODO: Should this be implemented?
+//bool espNowFloodingMesh_isSyncedWithMaster() { return false; }
+
 void espNowFloodingMesh_end() {
 }
 
+void espNowFloodingMesh_begin(int channel) {
+
+}
 
 //   void setSendCb(function<void(void)> f)
 #ifndef USE_RAW_801_11
@@ -609,7 +615,7 @@ void espNowFloodingMesh_secredkey(const unsigned char key[16]){
   memcpy(aes_secredKey, key, sizeof(aes_secredKey));
 }
 
-int decrypt(const uint8_t *_from, struct meshFrame *m, int size) {
+void decrypt(const uint8_t *_from, struct meshFrame *m, int size) {
   unsigned char iv[16];
   memcpy(iv,ivKey,sizeof(iv));
 
@@ -708,7 +714,7 @@ bool forwardMsg(const uint8_t *data, int len) {
 }
 
 
-uint32_t sendMsg(uint8_t* msg, int size, int ttl, int msgId, void *ptr) {
+uint32_t sendMsg(uint8_t* msg, size_t size, int ttl, int msgId, void *ptr) {
   uint32_t ret=0;
   if(size>=sizeof(struct mesh_secred_part)) {
     #ifdef DEBUG_PRINTS
@@ -805,7 +811,7 @@ bool espNowFloodingMesh_sendAndWaitReply(uint8_t* msg, int size, int ttl, int tr
         return true; //OK all received;
       }
       unsigned long elapsed = millis()-dbtm;
-      if(elapsed>timeoutMs) {
+      if(elapsed>(unsigned long)timeoutMs) {
         //timeout
         print(0, "Timeout: waiting replies");
         break;
@@ -829,7 +835,7 @@ bool espNowFloodingMesh_syncWithMasterAndWait(int timeoutMs, int tryCount) {
           return true; //OK all received;
         }
         unsigned long elapsed = millis()-dbtm;
-        if(elapsed>timeoutMs) {
+        if(elapsed>(unsigned long)timeoutMs) {
           break;
         }
       }
