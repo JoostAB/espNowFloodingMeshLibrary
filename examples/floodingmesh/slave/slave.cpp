@@ -21,8 +21,6 @@ void setup() {
 }
 
 void loop() {
-  static unsigned long m = millis();
-
   //Ask instant sync from master.
   espNowFloodingMesh_requestInstantTimeSyncFromMaster();
   // while (espNowFloodingMesh_isSyncedWithMaster() == false);

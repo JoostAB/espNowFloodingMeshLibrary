@@ -7,7 +7,7 @@
   #ifdef ESP32
 //  #include <esp_now.h>
   #else
-//W  #include <espnow.h>
+//  #include <espnow.h>
   #endif
 #endif
 

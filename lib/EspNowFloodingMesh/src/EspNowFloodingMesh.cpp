@@ -6,8 +6,8 @@
   #include <rom/crc.h>
   #include "mbedtls/aes.h"
 #else
-#include <ESP8266WiFi.h>
-#include "AESLib.h" //From https://github.com/kakopappa/arduino-esp8266-aes-lib
+  #include <ESP8266WiFi.h>
+  #include "AESLib.h" //From https://github.com/JoostAB/arduino-esp8266-aes-lib
 #endif
 
 
@@ -20,7 +20,7 @@
 #ifdef USE_RAW_801_11
 #include "wifi802_11.h"
 #endif
-
+#define DEBUG_PRINTS
 #define AES_BLOCK_SIZE  16
 #define DISPOSABLE_KEY_LENGTH AES_BLOCK_SIZE
 #define REJECTED_LIST_SIZE 50
@@ -28,7 +28,7 @@
 
 #define ALLOW_TIME_ERROR_IN_SYNC_MESSAGE false //Decrease secure. false=Validate sync messages against own RTC time
 
-
+// 10 - 300 sec
 #define RESEND_SYNC_TIME_MS 10000
 
 #define USER_MSG 1
@@ -36,7 +36,7 @@
 #define INSTANT_TIME_SYNC_REQ 3
 #define USER_REQUIRE_RESPONSE_MSG 4
 #define USER_REQUIRE_REPLY_MSG 5
-
+#define INSTANT_TIME_SYNC_REQ_ANNONCE 7
 
 unsigned char ivKey[16] = {0xb2, 0x4b, 0xf2, 0xf7, 0x7a, 0xc5, 0xec, 0x0c, 0x5e, 0x1f, 0x4d, 0xc1, 0xae, 0x46, 0x5e, 0x75};
 
@@ -91,9 +91,11 @@ struct meshFrame{
   struct mesh_secred_part encrypted;
 };
 // #pragma pack(pop);
+
 int espNowFloodingMesh_getTTL() {
     return syncTTL;
 }
+
 const unsigned char broadcast_mac[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 uint8_t aes_secredKey[] = {0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xAA,0xBB,0xCC,0xDD,0xEE, 0xFF};
 bool forwardMsg(const uint8_t *data, int len);
@@ -120,9 +122,7 @@ void espNowFloodingMesh_disableTimeDifferenceCheck(bool disable) {
         syncronized = true;
     }
 }
-void print(int level, const char * format, ... )
-{
-
+void print(int level, const char * format, ... ) {
  if(errorPrintCB){
       static char buffer[256];
       va_list args;
@@ -314,11 +314,11 @@ uint16_t calculateCRC(int c, const unsigned char*b,int len) {
     uint16_t crc = 0xFFFF;
     int i;
     if (len) do {
-    crc ^= *b++;
-    for (i=0; i<8; i++) {
-      if (crc & 1) crc = (crc >> 1) ^ 0x8408;
-      else crc >>= 1;
-    }
+      crc ^= *b++;
+      for (i=0; i<8; i++) {
+        if (crc & 1) crc = (crc >> 1) ^ 0x8408;
+        else crc >>= 1;
+      }
     } while (--len);
     return(~crc);
   #endif
@@ -402,7 +402,7 @@ bool compareTime(time_t current, time_t received, time_t maxDifference) {
 }
 
 #ifdef USE_RAW_801_11
-void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
+  void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
 #else
   void msg_recv_cb(const uint8_t *data, size_t len)
 #endif
@@ -414,7 +414,8 @@ void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
   struct meshFrame m;
   m.unencrypted.set(data);
 
-    if(myBsid!=m.unencrypted.getBsid()) {
+    //if(myBsid!=m.unencrypted.getBsid()) {
+    if ( (unsigned int) myBsid != m.unencrypted.getBsid() ) {
       //Serial.println(myBsid, HEX);
       //Serial.println(m.unencrypted.getBsid(), HEX);
       return;
@@ -460,6 +461,7 @@ void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
               print(1,"Received message with invalid time stamp.");
             //  Serial.print("CurrentTime:");Serial.println(currentTime);
             //  Serial.print("ReceivedTime:");Serial.println(m.encrypted.header.time);
+            // // shall we syncronize to it ? what about replay attack ?
           }
 
           bool ok = false;
@@ -471,7 +473,10 @@ void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
                   ok = true;
                 } else {
                   #ifdef DEBUG_PRINTS
-                  Serial.print("Reject message because of time difference:");Serial.print(currentTime);Serial.print(" ");Serial.println(m.encrypted.header.time);
+                  Serial.print("Reject message because of time difference:");
+                  Serial.print(currentTime);
+                  Serial.print(" ");
+                  Serial.println(m.encrypted.header.time);
                   hexDump((uint8_t*)&m,  messageLengtWithHeader);
                   #endif
                 }
@@ -509,7 +514,7 @@ void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
               }
             }
             if(m.encrypted.header.msgId==INSTANT_TIME_SYNC_REQ) {
-              ok = true;
+              // ok = true; // we do not forward time sync messages -- only direct nodes can send time sync response
               if(masterFlag) {
                 #ifdef DEBUG_PRINTS
                 Serial.println("Send time sync message!! (Requested)");
@@ -570,7 +575,7 @@ void msg_recv_cb(const uint8_t *data, size_t len, uint8_t rssi)
       #endif
     }
 }
-void espNowFloodingMesh_requestInstantTimeSyncFromMaster() {
+void espNowFloodingMesh_requestInstantTimeSync() {
   if(masterFlag) return;
   #ifdef DEBUG_PRINTS
   Serial.println("Request instant time sync from master.");
@@ -615,7 +620,7 @@ void espNowFloodingMesh_secredkey(const unsigned char key[16]){
   memcpy(aes_secredKey, key, sizeof(aes_secredKey));
 }
 
-void decrypt(const uint8_t *_from, struct meshFrame *m, int size) {
+int decrypt(const uint8_t *_from, struct meshFrame *m, int size) {
   unsigned char iv[16];
   memcpy(iv,ivKey,sizeof(iv));
 
@@ -648,6 +653,7 @@ void decrypt(const uint8_t *_from, struct meshFrame *m, int size) {
         memcpy((uint8_t*)m+i+SECRED_PART_OFFSET, to, 16);
       }
   }
+  return 0;
 }
 
 int encrypt(struct meshFrame *m) {
@@ -696,7 +702,12 @@ bool forwardMsg(const uint8_t *data, int len) {
   struct meshFrame m;
   memcpy(&m, data,len);
 
-  if(m.unencrypted.ttl==0) return false;
+  if(m.unencrypted.ttl==0) {
+    #ifdef DEBUG_PRINTS
+    Serial.print("FORWARD: TTL=0\n");
+    #endif
+    return false; 
+  }
 
   m.unencrypted.ttl = m.unencrypted.ttl-1;
 
@@ -821,16 +832,16 @@ bool espNowFloodingMesh_sendAndWaitReply(uint8_t* msg, int size, int ttl, int tr
   return false;
 }
 
-bool espNowFloodingMesh_syncWithMasterAndWait(int timeoutMs, int tryCount) {
+bool espNowFloodingMesh_syncTimeAndWait(int timeoutMs, int tryCount) {
   if(masterFlag || timeStampCheckDisabled) return true;
   syncronized = false;
   for(int i=0;i<tryCount;i++) {
       unsigned long dbtm = millis();
-      espNowFloodingMesh_requestInstantTimeSyncFromMaster();
+      espNowFloodingMesh_requestInstantTimeSync();
 
       while(1) {
         espNowFloodingMesh_loop();
-        delay(10);
+        delay(1);
         if(syncronized) {
           return true; //OK all received;
         }
