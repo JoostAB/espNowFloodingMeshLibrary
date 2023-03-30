@@ -38,12 +38,10 @@ static void msg_send_cb(u8* mac, u8 status)
 {}
 #endif
 void espnowBroadcast_begin(int channel){
-  WiFi.disconnect();
-
   WiFi.mode(WIFI_STA);
-
-  if (esp_now_init() != 0)
-  {
+  WiFi.disconnect();
+  
+  if (esp_now_init() != 0) {
     return;
   }
   esp_now_register_recv_cb(esp_msg_recv_cb);
